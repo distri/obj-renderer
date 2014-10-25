@@ -116,8 +116,8 @@ Renderer
             object.position.y = 0
             scene.add object
 
-        , onProgress
-        , onError
+      , onProgress
+      , onError
 
     render = ->
       camera.position.x += (mouseX - camera.position.x) * .05
