@@ -1,129 +1,72 @@
 Renderer
 ========
 
+    require "./globals"
     require "./lib/obj_renderer"
+    require "./event_handlers"
 
-    {Vector3} = THREE
+    ParticleSystem = require "./particles"
 
-    CUBE_SIZE = 10
+    util = require "util"
+    util.applyStylesheet(require("./style"))
 
-    camera =
-    scene =
-    renderer =
-    container = null
+    map = require("./map")()
 
-    mouseX = mouseY = 0
+    particles = []
 
-    manager = new THREE.LoadingManager()
-    manager.onProgress = (item, loaded, total) ->
-      console.log item, loaded, total
+    container = document.createElement "div"
+    document.body.appendChild container
 
-    windowHalfX = window.innerWidth / 2
-    windowHalfY = window.innerHeight / 2
-    aspectRatio = window.innerWidth / window.innerHeight
+    container.appendChild renderer.domElement
+    renderer.setSize window.innerWidth, window.innerHeight
+
+    camera.position.set 0, 100, 200
+
+Return 1 if `probability` percent of the time.
+Return -1 otherwise
+
+    randomSign = (probability) ->
+      if Math.random() <= probability
+        1
+      else
+        -1
 
     init = ->
-      container = document.createElement "div"
-      document.body.appendChild container
+      addLights()
 
-      camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 2000)
-      camera.position.z = 100
+      map.generateGrid(10)
+      map.populateCharacters()
 
-      scene = new THREE.Scene()
+      particles = ParticleSystem()
 
-      addLights scene
-
-      generateGrid(10)
-
-      texture = new THREE.Texture()
-
-      loadPalette "bartender", texture
-      loadObj "bartender", texture
-
-      renderer = new THREE.WebGLRenderer()
-      renderer.setSize window.innerWidth, window.innerHeight
-      container.appendChild renderer.domElement
-
-      document.addEventListener "mousemove", onDocumentMouseMove, false
-      window.addEventListener "resize", onWindowResize, false
-
-    generateGrid = (size) ->
-      [0...size].forEach (x) ->
-        [0...size].forEach (z) ->
-          addCube scene, new Vector3(x * CUBE_SIZE, -5, z * CUBE_SIZE)
-
-    onWindowResize = ->
-    	windowHalfX = window.innerWidth / 2
-    	windowHalfY = window.innerHeight / 2
-
-    	camera.aspect = window.innerWidth / window.innerHeight
-    	camera.updateProjectionMatrix()
-
-    	renderer.setSize window.innerWidth, window.innerHeight
-
-    onDocumentMouseMove = (event) ->
-      mouseX = (event.clientX - windowHalfX) / 2
-      mouseY = (event.clientY - windowHalfY) / 2
+      particles.generate
+        number: 100
+        position: new THREE.Vector3(0, 0, 0)
 
     animate = ->
       requestAnimationFrame animate
       render()
 
-    addLights = (scene) ->
+    addLights = ->
       ambient = new THREE.AmbientLight 0x101030
       scene.add ambient
 
       directionalLight = new THREE.DirectionalLight 0xffeedd
-      directionalLight.position.set 0, 0, 1
+      directionalLight.position.set 0, 0, 10
       scene.add directionalLight
 
-    addCube = (scene, position) ->
-      geometry = new THREE.CubeGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
-      material = new THREE.MeshBasicMaterial
-        color: 0xfffff
-        wireframe: true
-
-      cube = new THREE.Mesh geometry, material
-      cube.position.x = position.x
-      cube.position.y = position.y
-      cube.position.z = position.z
-
-      scene.add cube
-
-    loadPalette = (name, texture) ->
-      loader = new THREE.ImageLoader(manager)
-      loader.crossOrigin = true
-      loader.load "https://s3.amazonaws.com/trinket/18894/#{name}.png?doot2", (image) ->
-        texture.image = image
-        texture.needsUpdate = true
-
-    loadObj = (name, texture) ->
-      onProgress = (xhr) ->
-        if  xhr.lengthComputable
-          percentComplete = xhr.loaded / xhr.total * 100
-          console.log "#{Math.round(percentComplete, 2)}% downloaded"
-
-      onError = (xhr) ->
-        console.error xhr
-
-      loader = new THREE.OBJLoader(manager)
-      loader.crossOrigin = true
-      loader.load "https://s3.amazonaws.com/trinket/18894/#{name}.obj?doot2", (object) ->
-        object.traverse (child) ->
-          if child instanceof THREE.Mesh
-            child.material.map = texture
-
-            object.position.y = 0
-            scene.add object
-
-      , onProgress
-      , onError
-
-    render = ->
-      camera.position.x += (mouseX - camera.position.x) * .05
-      camera.position.y += (-mouseY - camera.position.y) * .05
-
+    render = ->    
       camera.lookAt scene.position
+
+      particles.update (p) ->
+        p.age ||= 0
+        p.age += 1
+
+        p.material.opacity = p.material.opacity - 0.01
+        scene.remove(p) if p.age > 100
+        
+        p.position.x += randomSign(0.5)
+        p.position.z += randomSign(0.5)
 
       renderer.render scene, camera
 
