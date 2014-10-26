@@ -1,4 +1,4 @@
-Isolate all our user interactions to here. 
+Isolate all our user interactions to here.
 Eventually we'll remove this as the game takes control of the camera.
 
     halfWidth = window.innerWidth / 2

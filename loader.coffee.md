@@ -41,9 +41,9 @@ Load a model by name, passing in an optional position.
       loader.load "#{BUCKET_PATH}/#{name}.obj?doot2", (object) ->
         object.traverse (child) ->
           if child instanceof THREE.Mesh
-          
-Apply the color palette texture we loaded above  
-      
+
+Apply the color palette texture we loaded above
+
             child.material.map = texture
 
             object.position.set position.x, position.y, position.z
